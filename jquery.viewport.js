@@ -7,7 +7,9 @@ $.widget('ui.viewport', {
         position: 'center',
         content: false,
         height: false,
-        width: false
+        width: false,
+        scrollbars: false,
+        scrollParent: null
     },
 
     _create: function() {
@@ -89,6 +91,51 @@ function createViewport(element, options) {
     
     binder.append(content);
     element.append(binder);
+
+    if(options.scrollbars != false) {
+      var scrollbarY = $("<div class='scrollbar-y'/>");
+      var scrollbarX = $("<div class='scrollbar-x'/>");
+        
+      $(options.scrollParent).prepend(scrollbarX, scrollbarY);
+
+      $(scrollbarY).css('height', $(options.scrollParent).height()+'px !important')
+      var updatePane = function() {
+        bPos = $(binder).position();
+        cPos = $(content).position();
+        maxY = bPos.top * -1;
+        maxX = bPos.left * -1;
+        currentY = maxY - cPos.top;
+        currentX = maxX - cPos.left;
+
+        $('.scrollbar-y').slider('value', 100 - (currentY/maxY * 100));
+        $('.scrollbar-x').slider('value', (currentX/maxX * 100));
+      }
+
+      $('.scrollbar-x').slider({
+        value: 0,
+        orientation: 'horizontal',
+        slide: function(event, ui) {
+          updatePane();
+          var newLeft = ($('.viewportBinder').position().left * -1) - Math.ceil((ui.value / 100) * ($(binder).position().left * -1));
+          $('.viewportContent').css('left', newLeft)
+        }
+      })
+
+      $('.scrollbar-y').slider({
+        value: 0,
+        orientation: 'vertical',
+        slide: function(event, ui) {
+          updatePane();
+          var invertedBinder = $(binder).position().top * -1;
+          var newTop = invertedBinder - Math.ceil(((100-ui.value) / 100) * invertedBinder);
+          $('.viewportContent').css('top', newTop)
+        }
+      })
+
+      element.bind('drag', function(event, ui) {
+        updatePane();
+      })
+    }
 
     element.bind('dragstop', function(event, ui) {
         if(contentPosition.top != ui.position.top) {
